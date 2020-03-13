@@ -1,0 +1,11 @@
+<use   name="FWCore/Framework"/>
+<use   name="FWCore/ParameterSet"/>
+<use   name="FWCore/ServiceRegistry"/>
+<use   name="FWCore/Utilities"/>
+<use   name="DataFormats/HepMCCandidate"/>
+<use   name="DataFormats/NanoAOD"/>
+<use   name="SimDataFormats/GeneratorProducts"/>
+<use   name="MGcpp/GenericMEComputer"/>
+<library   file="*.cc" name="GenericMEComputerPlugins">
+  <flags   EDM_PLUGIN="1"/>
+</library>

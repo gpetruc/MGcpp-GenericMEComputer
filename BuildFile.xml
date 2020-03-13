@@ -1,0 +1,6 @@
+<use name="DataFormats/HepMCCandidate"/>
+<use name="SimDataFormats/GeneratorProducts"/>
+<export>
+  <lib   name="1"/>
+</export>
+<flags ADD_SUBDIR="1" />
