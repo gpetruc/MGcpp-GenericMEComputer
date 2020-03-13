@@ -1,27 +1,5 @@
 #!/usr/bin/env python
-import sys, re, os
-
-from optparse import OptionParser
-parser = OptionParser(usage="usage: %prog name srcdir")
-parser.add_option("-o", "--out", dest="out", default=None, help="Output dir")
-(options, args) = parser.parse_args()
-if len(args) != 2 or (not os.path.isdir(args[1])) or os.path.isdir(args[0]):
-    parser.print_usage()
-    exit(1)
-
-name, srcdir = args
-outdir = options.out if options.out else name+".dir";
-
-
-src = dict((k,[ f for f in os.listdir(srcdir+"/src") if os.path.isfile(srcdir+"/src/"+f) and f.endswith("."+k)]) for k in ("h","cc") )
-print "Source files: ", src
-
-model = [f for f in src['h'] if f.startswith("HelAmps_") ][0][len("HelAmps_"):-2]
-print "Model: ", model
-
-subprocesses = [ d for d in os.listdir(srcdir+"/SubProcesses") if os.path.isdir(srcdir+"/SubProcesses/"+d) and re.match(r"P\d+_.*",d) ]
-print "Number of subprocesses: ",len(subprocesses)
-
+import re, os
 
 PDGIDs = dict(h=25, g=21, a=22, z=23)
 PDGIDs["w+"] = +24; PDGIDs["w-"] = -24
@@ -62,7 +40,7 @@ def copy_helamps(srcdir,outdir,name,model):
     sout.close()
 
 
-def copy_param_class(srcdir,outdir,name,model):
+def copy_param_class(srcdir,outdir,name,model,package):
     ## Header
     fin  = "%s/src/%s_%s.h" % (srcdir,"Parameters",model)
     fout = "%s/%s_%s.h" % (outdir,"Parameters",model)
@@ -89,7 +67,7 @@ def copy_param_class(srcdir,outdir,name,model):
         elif re.match(r"\s*static Parameters_%s\s+\*\s+instance.*" % model,line): 
             # remove static instance
             continue
-        line = line.replace("read_slha.h", "MGcpp/GenericMEComputer/interface/SLHAInfo.h")
+        line = line.replace("read_slha.h", "%s/interface/SLHAInfo.h" % package)
         line = line.replace("SLHAReader&", "const SLHAInfo &")
         line = line.replace("SLHAReader", "SLHAInfo")
         m = re.match(r"(\s*void.*print(Ind|D)ependent\w+\s*\(\s*\)\s*);", line)
@@ -193,7 +171,7 @@ class CPPProcess
     print "Done "+fout
     sout.close()
 
-def copy_subprocess(srcdir,outdir,subprocess,name,model):
+def copy_subprocess(srcdir,outdir,subprocess,name,model,package):
     ## Header
     fin  = "%s/SubProcesses/%s/%s.h" % (srcdir,subprocess,"CPPProcess")
     fout = "%s/%s.h" % (outdir,subprocess)
@@ -323,7 +301,7 @@ def copy_subprocess(srcdir,outdir,subprocess,name,model):
     print "Done "+fout
     sout.close()
 
-def make_mainprocess(outdir,name,model,subprocesses):
+def make_mainprocess(outdir,name,model,subprocesses,package,plugin):
     ident = "MGME_"+name
     fout = "%s/%s.h" % (outdir,"main")
     sout = open(fout,'w');
@@ -331,7 +309,7 @@ def make_mainprocess(outdir,name,model,subprocesses):
 #ifndef <HEADER>
 #define <HEADER>
 
-#include "MGcpp/GenericMEComputer/interface/ProcessCollection.h"
+#include "<PACKAGE>/interface/ProcessCollection.h"
 #include "<PARAMETERS>.h"
 #include "CPPProcess.h"
 
@@ -351,6 +329,7 @@ class main : public ProcessCollectionT<<PARAMETERS>,CPPProcess>
 #endif // <HEADER>""").strip()
     code = code.replace("<HEADER>","%s_main_h" % ident)
     code = code.replace("<PARAMETERS>", "Parameters_%s" % model)
+    code = code.replace("<PACKAGE>", package)
     code = code.replace("<NAMESPACE>", ident)
     sout.write(code+"\n")
     print "Done "+fout
@@ -366,20 +345,55 @@ class main : public ProcessCollectionT<<PARAMETERS>,CPPProcess>
     <ADD_SUBPROCESSES>
 }
 """).strip()
-    code = code.replace("<HEADER>","%s_CPPProcess_h" % ident)
-    code = code.replace("<PARAMETERS>", "Parameters_%s" % model)
     code = code.replace("<NAMESPACE>", ident)
     code = code.replace("<INCLUDE_SUBPROCESSES>", "\n".join('#include "%s.h"' % s for s in subprocesses))   
     code = code.replace("<ADD_SUBPROCESSES>", "\n    ".join('addProcess(new %s());' % s for s in subprocesses))   
-    sout.write(code+"\n")
+    sout.write(code+"\n\n")
+    if plugin:
+        code = ("""
+#include "<PACKAGE>/interface/ProcessCollectionFactory.h"
+
+DEFINE_EDM_PLUGIN(ProcessCollectionFactory,
+                  <NAMESPACE>::main,
+                  "<NAMESPACE>");
+""").strip()
+        code = code.replace("<NAMESPACE>", ident)
+        code = code.replace("<PACKAGE>", package)
+        sout.write(code+"\n")
     print "Done "+fout
     sout.close()
 
+if __name__ == "__main__":
+    from optparse import OptionParser
+    parser = OptionParser(usage="usage: %prog name srcdir")
+    parser.add_option("-o", "--out", dest="out", default=None, help="Output dir")
+    parser.add_option("--plugin", dest="plugin", action="store_true", default=False, help="Register as plugin in the ProcessCollectionFactory")
+    #parser.add_option("-m", "--model", dest="none", default=None, help="Separate out model file")
+    parser.add_option("--package", dest="package", default="MGcpp/GenericMEComputer", help="Package to import headers from")
 
-os.mkdir(outdir)
-copy_helamps(srcdir,outdir,name,model)
-copy_param_class(srcdir,outdir,name,model)
-make_cpprocess(outdir,name,model)
-for s in subprocesses:
-    copy_subprocess(srcdir,outdir,s,name,model)
-make_mainprocess(outdir,name,model,subprocesses)
+    (options, args) = parser.parse_args()
+    if len(args) != 2 or (not os.path.isdir(args[1])) or os.path.isdir(args[0]):
+        parser.print_usage()
+        exit(1)
+
+    name, srcdir = args
+    outdir = options.out if options.out else name+".dir";
+
+
+    src = dict((k,[ f for f in os.listdir(srcdir+"/src") if os.path.isfile(srcdir+"/src/"+f) and f.endswith("."+k)]) for k in ("h","cc") )
+    print "Source files: ", src
+
+    model = [f for f in src['h'] if f.startswith("HelAmps_") ][0][len("HelAmps_"):-2]
+    print "Model: ", model
+
+    subprocesses = [ d for d in os.listdir(srcdir+"/SubProcesses") if os.path.isdir(srcdir+"/SubProcesses/"+d) and re.match(r"P\d+_.*",d) ]
+    print "Number of subprocesses: ",len(subprocesses)
+
+
+    os.mkdir(outdir)
+    copy_helamps(srcdir,outdir,name,model)
+    copy_param_class(srcdir,outdir,name,model,options.package)
+    make_cpprocess(outdir,name,model)
+    for s in subprocesses:
+        copy_subprocess(srcdir,outdir,s,name,model,options.package)
+    make_mainprocess(outdir,name,model,subprocesses,options.package,options.plugin)

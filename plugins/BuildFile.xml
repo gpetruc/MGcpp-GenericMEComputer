@@ -6,6 +6,6 @@
 <use   name="DataFormats/NanoAOD"/>
 <use   name="SimDataFormats/GeneratorProducts"/>
 <use   name="MGcpp/GenericMEComputer"/>
-<library   file="*.cc" name="GenericMEComputerPlugins">
+<library   file="*.cc, */*.cc" name="GenericMEComputerPlugins">
   <flags   EDM_PLUGIN="1"/>
 </library>

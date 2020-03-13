@@ -1,5 +1,6 @@
 <use name="DataFormats/HepMCCandidate"/>
 <use name="SimDataFormats/GeneratorProducts"/>
+<use name="FWCore/PluginManager"/>
 <export>
   <lib   name="1"/>
 </export>

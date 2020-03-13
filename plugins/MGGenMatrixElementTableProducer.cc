@@ -17,7 +17,8 @@
 
 
 #include "MGcpp/GenericMEComputer/interface/SLHAInfo.h"
-#include "MGcpp/GenericMEComputer/src/WpH_SMEFTsimB/main.h"
+#include "MGcpp/GenericMEComputer/interface/ProcessCollectionFactory.h"
+//#include "MGcpp/GenericMEComputer/src/WpH_SMEFTsimB/main.h"
 
 namespace {
 
@@ -39,14 +40,15 @@ class MGGenMatrixElementTableProducer : public edm::stream::EDProducer<> {
         const std::vector<edm::InputTag> lheLabel_;
         const std::vector<edm::EDGetTokenT<LHEEventProduct>> lheTag_;
 
-        const std::string name_, slha_;
+        const std::string name_, processCollection_, slha_;
 
         struct Worker {
             Worker(const std::string & n, ProcessCollection *p) : name(n), doc(), slha(), me(p) {} 
-            Worker(const std::string & n, const std::string & slha_file, ProcessCollection *p) : name(n), doc(), slha(), me(p) { 
-                slha.read_slha_file(slha_file); 
-            } 
-            Worker(const std::string & n, const SLHAInfo & slha_info, ProcessCollection *p) : name(n), slha(slha_info), me(p) { } 
+            Worker(const std::string & n, std::unique_ptr<ProcessCollection> &&p) : name(n), doc(), slha(), me(std::move(p)) {} 
+            Worker(const std::string & n, const std::string & slha_file, ProcessCollection *p) : name(n), doc(), slha(), me(p) { slha.read_slha_file(slha_file); } 
+            Worker(const std::string & n, const std::string & slha_file, std::unique_ptr<ProcessCollection> &&p) : name(n), doc(), slha(), me(std::move(p)) { slha.read_slha_file(slha_file); } 
+            Worker(const std::string & n, const SLHAInfo & slha_info, ProcessCollection * p) : name(n), slha(slha_info), me(p) { } 
+            Worker(const std::string & n, const SLHAInfo & slha_info, std::unique_ptr<ProcessCollection> && p) : name(n), slha(slha_info), me(std::move(p)) { } 
             std::string name, doc;
             SLHAInfo slha;
             std::unique_ptr<ProcessCollection> me;
@@ -60,13 +62,14 @@ MGGenMatrixElementTableProducer::MGGenMatrixElementTableProducer( edm::Parameter
     lheLabel_(iConfig.getParameter<std::vector<edm::InputTag>>("lheInfo")),
     lheTag_(edm::vector_transform(lheLabel_, [this](const edm::InputTag & tag) { return mayConsume<LHEEventProduct>(tag); })),
     name_(iConfig.getParameter<std::string>("name")),
+    processCollection_(iConfig.getParameter<std::string>("processCollection")),
     slha_(iConfig.getParameter<std::string>("slha"))
 {
     produces<nanoaod::FlatTable>();
-    workers.emplace_back("SM", slha_, new MGME_WpH_SMEFTsimB::main());
+    workers.emplace_back("SM", slha_, ProcessCollectionFactory::get()->create(processCollection_));
 
     for (const auto & pset : iConfig.getParameter<std::vector<edm::ParameterSet>>("scanPoints")) {
-        workers.emplace_back(pset.getParameter<std::string>("name"), workers.front().slha, new MGME_WpH_SMEFTsimB::main());
+        workers.emplace_back(pset.getParameter<std::string>("name"), workers.front().slha, ProcessCollectionFactory::get()->create(processCollection_));
         auto & slha = workers.back().slha;
         //std::cout << pset.getParameter<std::string>("name") << " created" << std::endl;
         for (const auto & pcoup : pset.getParameter<std::vector<edm::ParameterSet>>("params")) {
