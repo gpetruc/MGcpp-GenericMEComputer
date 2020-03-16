@@ -51,7 +51,7 @@ class MEMultiWeightTool {
                 if (!isInit) { me->initIndependent(slha); isInit = true; }
                 me->initDependent(alphaS);
             }
-            double eval(const std::vector<int> & pdgIds, const std::vector <double *> & momenta) { return me->sigma(pdgIds, momenta); } 
+            double eval(const std::vector<int> & pdgIds, const std::vector <double *> & momenta, bool permuteFS) { return permuteFS ? me->sigmaSumPermutations(pdgIds, momenta) : me->sigma(pdgIds, momenta); } 
         };
         std::vector<Worker> workers_;
 

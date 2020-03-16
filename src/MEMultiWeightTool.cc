@@ -48,7 +48,7 @@ double MEMultiWeightTool::evalRef(double alphaS, const std::vector<int> & pdgIds
 {
     auto & ref = workers_.front();
     ref.init(alphaS);
-    return ref.eval(pdgIds, momenta);
+    return ref.eval(pdgIds, momenta, permuteFS);
 }
 
 std::vector<double> MEMultiWeightTool::evalAll(double alphaS, const std::vector<int> & pdgIds, const std::vector <double *> & momenta, bool relative, bool permuteFS) 
@@ -58,15 +58,15 @@ std::vector<double> MEMultiWeightTool::evalAll(double alphaS, const std::vector<
     for (auto & w : workers_) w.init(alphaS);
     if (relative) {
         vals.resize(n-1);
-        double ref = workers_.front().eval(pdgIds, momenta);    
+        double ref = workers_.front().eval(pdgIds, momenta, permuteFS);    
         if (ref <= 0) edm::LogWarning("MEMultiWeightTool") << "Evaluating reference ME for " << processCollection_ << " init from " << slha_ << ": ME is " << ref << std::endl; 
         for (unsigned int i = 1; i < n; ++i) {
-            vals[i-1] = (ref > 0) ? workers_[i].eval(pdgIds, momenta)/ref : 0;
+            vals[i-1] = (ref > 0) ? workers_[i].eval(pdgIds, momenta, permuteFS)/ref : 0;
         }
     } else {
         vals.resize(n);
         for (unsigned int i = 0; i < n; ++i) {
-            vals[i] = workers_[i].eval(pdgIds, momenta);
+            vals[i] = workers_[i].eval(pdgIds, momenta, permuteFS);
         }
     }
     return vals;

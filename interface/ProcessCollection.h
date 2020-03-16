@@ -21,6 +21,7 @@ class ProcessCollection
     virtual void initDependent(double aS) = 0;
 
     virtual double sigma(const std::vector<int> & pdgIds, const std::vector <double *> & momenta, int subprocess=-1) = 0;
+    double sigmaSumPermutations(const std::vector<int> & pdgIds, const std::vector <double *> & momenta, int subprocess=-1) ;
 
     virtual int nInitial(int subprocess=-1) const = 0;
     virtual int nExternal(int subprocess=-1) const = 0;
