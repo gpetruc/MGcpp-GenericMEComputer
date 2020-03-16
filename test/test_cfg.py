@@ -120,10 +120,20 @@ import sys
 args = sys.argv[:]
 if args[0].startswith('cmsRun'): args = args[1:]
 sample = args[1] if len(args) > 1 else 'WpH_HToMuNu-SMEFTsim-B'
+mother = 0; undecayed = [ 25 ]
 ## ==== WH ====
 if sample == "WpH_HToMuNu-SMEFTsim-B":  
     process.source.fileNames = [ 'file:/afs/cern.ch/work/g/gpetrucc/eft/EFT2Obs/EFT2Obs/MG5_aMC_v2_6_7/WpH_SMEFTsimB-no_b_mass/Events/run_01/unweighted_events.lhe' ]
+    paramCard = "/afs/cern.ch/work/g/gpetrucc/eft/EFT2Obs/EFT2Obs/MG5_aMC_v2_6_7.bis/WpH_HToMuNu-SMEFTsim-B/Cards/param_card.dat"
+    mgProcessCollection = "MGME_WpH_SMEFTsimB"
     myWeights = [ 'rwHBox_up', 'rwHBox_dn', 'rwHW_up', 'rwHW_dn', 'rwHWtil_up', 'rwHWtil_dn', 'rwHWtil_half', ]
+elif sample == "ggH_HTo4L-SMEFTsim-B":
+    process.source.fileNames = [ 'file:/afs/cern.ch/work/g/gpetrucc/eft/EFT2Obs/EFT2Obs/MG5_aMC_v2_6_7/ggH_HTo4L-SMEFTsim-B/Events/run_02/unweighted_events.lhe' ]
+    paramCard = "/afs/cern.ch/work/g/gpetrucc/eft/EFT2Obs/EFT2Obs/MG5_aMC_v2_6_7/ggH_HTo4L-SMEFTsim-B/Cards/param_card.dat"
+    mgProcessCollection = "MGME_HTo4L_SMEFTsimB"
+    mother = 25; undecayed = []
+    myWeights = [ 'rwHBox_up', 'rwHBox_dn', 'rwHW_up', 'rwHW_dn', 'rwHWtil_up', 'rwHWtil_dn', 'rwHWtil_half', ]
+
 
 myWeights += ["nh"+w for w in myWeights if (w.startswith("rw") and ("SM" not in w)) ]
 
@@ -185,8 +195,10 @@ points = [
 process.mgmeTable = cms.EDProducer("MGGenMatrixElementTableProducer",
    lheInfo = cms.VInputTag(cms.InputTag("externalLHEProducer"), cms.InputTag("source")),
    name = cms.string("MG"),
-   processCollection = cms.string("MGME_WpH_SMEFTsimB"),
-   slha = cms.string("/afs/cern.ch/work/g/gpetrucc/eft/EFT2Obs/EFT2Obs/MG5_aMC_v2_6_7.bis/WpH_HToMuNu-SMEFTsim-B/Cards/param_card.dat"),
+   processCollection = cms.string(mgProcessCollection),
+   slha = cms.string(paramCard),
+   motherParticle = cms.int32(mother),
+   undecayedPdgIds = cms.vuint32(*undecayed),
    scanPoints = cms.VPSet([
        cms.PSet(name = cms.string(name),
                 params = cms.VPSet(

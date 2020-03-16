@@ -35,7 +35,8 @@ MGGenMatrixElementTableProducer::MGGenMatrixElementTableProducer( edm::Parameter
     lheLabel_(iConfig.getParameter<std::vector<edm::InputTag>>("lheInfo")),
     lheTag_(edm::vector_transform(lheLabel_, [this](const edm::InputTag & tag) { return mayConsume<LHEEventProduct>(tag); })),
     name_(iConfig.getParameter<std::string>("name")),
-    lhe2me_(),
+    lhe2me_(iConfig.getParameter<int>("motherParticle"),
+            edm::vector_transform(iConfig.getParameter<std::vector<uint32_t>>("undecayedPdgIds"), [](uint32_t i) { return int(i); })),
     meTool_(iConfig.getParameter<std::string>("processCollection"), 
             iConfig.getParameter<std::string>("slha"), 
             iConfig.getParameter<std::vector<edm::ParameterSet>>("scanPoints"))
@@ -57,7 +58,7 @@ void MGGenMatrixElementTableProducer::produce(edm::Event& iEvent, const edm::Eve
     }
 
     if (lhe2me_.readLHE(*lheInfo)) {
-        std::vector<double> vals = meTool_.evalAll(lhe2me_.alphaS(), lhe2me_.pdgIds(), lhe2me_.p4s(), true);
+        std::vector<double> vals = meTool_.evalAll(lhe2me_.alphaS(), lhe2me_.pdgIds(), lhe2me_.p4s(), true, true);
         MEInitFromLHE lhe2me_;
         for (unsigned int i = 0, n = vals.size(); i < n; ++i) {
             out->addColumnValue<float>(meTool_.name(i+1), vals[i], meTool_.doc(i+1), nanoaod::FlatTable::FloatColumn);

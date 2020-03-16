@@ -8,6 +8,8 @@
 class MEInitFromLHE {
     public:
         MEInitFromLHE() : motherParticle_(0), undecayedIds_(), leptonIDSquash_(0) {}
+        MEInitFromLHE(int motherParticle, const std::vector<int> & undecayedIds) :
+            motherParticle_(motherParticle), undecayedIds_(undecayedIds), leptonIDSquash_(0) {}
     
         static MEInitFromLHE ProductionME() { return MEInitFromLHE(); }
         static MEInitFromLHE ProductionME(const std::vector<int> & undecayedIds) { return MEInitFromLHE(0,undecayedIds); }
@@ -22,15 +24,13 @@ class MEInitFromLHE {
 
         bool readLHE(const LHEEventProduct & lhe);
         void printLHE(const LHEEventProduct & lhe);
+        void printSelected();
 
         double alphaS() const { return alphaS_; }
         const std::vector<int> & pdgIds() const { return pdgIds_; }
         const std::vector<double*> & p4s() const { return p4s_; }
 
     private:
-        MEInitFromLHE(int motherParticle, const std::vector<int> & undecayedIds) :
-            motherParticle_(motherParticle), undecayedIds_(undecayedIds), leptonIDSquash_(0) {}
-
         // config data 
         int motherParticle_;
         std::vector<int> undecayedIds_;
