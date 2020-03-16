@@ -133,7 +133,7 @@ process.RAWSIMoutput.fileName = 'v2-step1-%s.root' % sample
 myWeights = [ 'nhrwHW_up', 'nhrwHW_dn', 'nhrwHWtil_up' ]  
 process.genWeightsTable.namedWeightIDs = myWeights
 process.genWeightsTable.namedWeightLabels = [ ("nh"+w[4:] if w.startswith("nhrw") else w[2:]) for w in myWeights ]
-process.genWeightsTable.printNamedWeights = cms.untracked.bool(True)
+#process.genWeightsTable.printNamedWeights = cms.untracked.bool(True)
 
 process.gen_minimal = cms.Sequence(
     process.generator * 

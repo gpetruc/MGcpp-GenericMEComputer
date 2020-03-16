@@ -3,9 +3,11 @@
 #include "FWCore/ParameterSet/interface/ParameterSet.h"
 #include "DataFormats/NanoAOD/interface/FlatTable.h"
 #include "FWCore/Utilities/interface/transform.h"
+#include "FWCore/MessageLogger/interface/MessageLogger.h"
 #include "SimDataFormats/GeneratorProducts/interface/LHEEventProduct.h"
 
 #include "MGcpp/GenericMEComputer/interface/MEMultiWeightTool.h"
+#include "MGcpp/GenericMEComputer/interface/MEInitFromLHE.h"
 #include "MGcpp/GenericMEComputer/interface/ProcessCollectionFactory.h"
 
 namespace {
@@ -22,6 +24,7 @@ class MGGenMatrixElementTableProducer : public edm::stream::EDProducer<> {
         const std::vector<edm::EDGetTokenT<LHEEventProduct>> lheTag_;
 
         const std::string name_;
+        MEInitFromLHE lhe2me_;
         MEMultiWeightTool meTool_;
 
      private:
@@ -32,6 +35,7 @@ MGGenMatrixElementTableProducer::MGGenMatrixElementTableProducer( edm::Parameter
     lheLabel_(iConfig.getParameter<std::vector<edm::InputTag>>("lheInfo")),
     lheTag_(edm::vector_transform(lheLabel_, [this](const edm::InputTag & tag) { return mayConsume<LHEEventProduct>(tag); })),
     name_(iConfig.getParameter<std::string>("name")),
+    lhe2me_(),
     meTool_(iConfig.getParameter<std::string>("processCollection"), 
             iConfig.getParameter<std::string>("slha"), 
             iConfig.getParameter<std::vector<edm::ParameterSet>>("scanPoints"))
@@ -52,36 +56,17 @@ void MGGenMatrixElementTableProducer::produce(edm::Event& iEvent, const edm::Eve
         }
     }
 
-    unsigned int nExt = meTool_.proc().nExternal();
-    std::vector<double>  p4unroll(nExt * 4);
-    std::vector<double*> p4s(nExt);
-    for (unsigned int i = 0; i < nExt; ++i) {
-        p4s[i] = &p4unroll[4*i];
-    }
-    std::vector<int> ids;
-
-    const auto & hepeup = lheInfo->hepeup();
-    const auto & pup = hepeup.PUP;
-    for (unsigned int i = 0, k = 0, n = pup.size(); i  < n; ++i) {
-        /*std::cout << "Particle " << i << "  pdgId " << std::showpos << std::setw(3) << hepeup.IDUP[i] << " status " << std::setw(2) << hepeup.ISTUP[i] << 
-            std::scientific << std::setprecision(10) << 
-            "   XYZEM  " << pup[i][0] << "   " << pup[i][1]  << "   " << pup[i][2]  << "   " << pup[i][3]  << "   " << pup[i][4] <<
-            std::fixed << std::setprecision(8) <<
-            std::endl; */
-        if (std::abs(hepeup.ISTUP[i]) != 1) continue;
-        p4s[k][0] = pup[i][3]; // E
-        for (unsigned int j = 0; j < 3; ++j) {
-            p4s[k][j+1] = pup[i][j]; // PX PY PZ
+    if (lhe2me_.readLHE(*lheInfo)) {
+        std::vector<double> vals = meTool_.evalAll(lhe2me_.alphaS(), lhe2me_.pdgIds(), lhe2me_.p4s(), true);
+        MEInitFromLHE lhe2me_;
+        for (unsigned int i = 0, n = vals.size(); i < n; ++i) {
+            out->addColumnValue<float>(meTool_.name(i+1), vals[i], meTool_.doc(i+1), nanoaod::FlatTable::FloatColumn);
         }
-        
-        ids.push_back(hepeup.IDUP[i]);
-        k++;
-    }
-    
-    double alphaS = hepeup.AQCDUP;
-    std::vector<double> vals = meTool_.evalAll(alphaS, ids, p4s, true);
-    for (unsigned int i = 0, n = vals.size(); i < n; ++i) {
-        out->addColumnValue<float>(meTool_.name(i+1), vals[i], meTool_.doc(i+1), nanoaod::FlatTable::FloatColumn);
+    } else {
+        edm::LogWarning("MGGenMatrixElementTableProducer") << "Could not initialize ME info from LE.";
+        for (unsigned int i = 0, n = meTool_.size()-1; i < n; ++i) {
+            out->addColumnValue<float>(meTool_.name(i+1), 0, meTool_.doc(i+1), nanoaod::FlatTable::FloatColumn);
+        }
     }
 
     iEvent.put(std::move(out));
