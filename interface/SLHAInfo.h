@@ -4,7 +4,21 @@
 #include <map>
 #include <string>
 #include <sstream>
+#include <cctype>
+#include <algorithm>
 #include <vector>
+
+namespace slha_util {
+    struct ci_less {
+        // case-independent (ci) compare_less binary function
+        struct nocase_compare {
+            bool operator()(const unsigned char& c1, const unsigned char& c2) const { return tolower(c1) < tolower(c2); }
+        };
+        bool operator()(const std::string & s1, const std::string & s2) const {
+            return std::lexicographical_compare(s1.begin(), s1.end(), s2.begin(), s2.end(), nocase_compare()); 
+        }
+    };
+} // namespace 
 
 class SLHABlock
 {
@@ -65,7 +79,7 @@ class SLHABlock
     std::string _name;
     std::map<int, double> _entries;
     std::map<std::vector<int>, int> _byMultiIndex;
-    std::map<std::string, int> _byName;
+    std::map<std::string, int, slha_util::ci_less> _byName;
     unsigned int _nIndices;
 };
 
@@ -125,7 +139,7 @@ class SLHAInfo
    
 
   private:
-    std::map<std::string, SLHABlock> _blocks;
+    std::map<std::string, SLHABlock, slha_util::ci_less> _blocks;
 
     void throwMissingBlock(const std::string & block_name) const ;
 

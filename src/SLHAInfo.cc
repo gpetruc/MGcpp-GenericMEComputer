@@ -6,7 +6,6 @@
 #include "FWCore/Utilities/interface/Exception.h"
 #include "FWCore/MessageLogger/interface/MessageLogger.h"
 
-
 int SLHABlock::next_free_index() const {
     for (unsigned int i = _entries.size(), n = 2*i+2; i < n; ++i) {
         if (_entries.find(i) == _entries.end()) return i;
@@ -73,16 +72,14 @@ void SLHAInfo::read_slha_file(const std::string & file_name)
 
   std::regex idx1dline("\\s*(\\d+)\\s+(\\S+)\\s*(\\s+#\\s*(\\S.*)?)?");
   std::regex idx2dline("\\s*(\\d+)\\s+(\\d+)\\s+(\\S+)\\s*(\\s+#\\s*(\\S.*)?)?");
-  std::regex blockline("\\s*block\\s+(\\S+)\\s*(\\s+#.*)?");
-  std::regex decayline("\\s*decay\\s+(\\d+)\\s*(\\S+)\\s*(\\s+#.*)?");
+  std::regex blockline("\\s*block\\s+(\\S+)\\s*(\\s+#.*)?",  std::regex_constants::ECMAScript |  std::regex_constants::icase);
+  std::regex decayline("\\s*decay\\s+(\\d+)\\s*(\\S+)\\s*(\\s+#.*)?",  std::regex_constants::ECMAScript |  std::regex_constants::icase);
   std::regex emptyline("\\s*#.*");
   std::smatch match;
   std::vector<int> indices(2);
   while(param_card.good()){
       param_card.getline(buf, 500);
       line = buf;
-      // Change to lowercase
-      transform(line.begin(), line.end(), line.begin(), (int(*)(int)) tolower);
       //bool barf = true;
       if(line != "" && line[0] != '#'){
           if(block != ""){
