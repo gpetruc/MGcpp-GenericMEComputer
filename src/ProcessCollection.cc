@@ -12,7 +12,8 @@ ProcessCollection::~ProcessCollection()
 
 double ProcessCollection::sigmaSumPermutations(const std::vector<int> & pdgIds, const std::vector <double *> & momenta, int subprocess) 
 {
-    unsigned int nFirst = nInitial(subprocess), nExt = nExternal(subprocess);
+    assert(pdgIds.size() == momenta.size());
+    unsigned int nFirst = nInitial(subprocess), nExt = pdgIds.size(); // subprocesses may have different number of legs in case of X+jets reweighting
     std::vector<int> iperm(nExt-nFirst);
     std::vector<int> permPdgIds(pdgIds);
     std::vector<double *> permMomenta(momenta);

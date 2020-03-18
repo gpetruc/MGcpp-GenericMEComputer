@@ -108,18 +108,21 @@ class ProcessCollectionT : public ProcessCollection {
             }
 
             double sigma(const std::vector<int> & pdgIds, const std::vector < double * > & momenta) {
-                assert(int(pdgIds.size()) == nExternal);
-                assert(int(momenta.size()) == nExternal);
+                assert(pdgIds.size() == momenta.size());
                 assert(nInitial <= 2);
                 double ret = 0;
-                for (auto & s : subprocesses) {
-                    //std::cout << "Trying process " << s.code() << " " << s.name() << std::endl;
-                    if (!s.matchParticles(pdgIds)) continue;
-                    s.setInitial(pdgIds[0], pdgIds[1]);
-                    s.setMomenta(momenta);
-                    s.sigmaKin(); // compute
-                    //std::cout << "process " << s.code() << " " << s.name() << " -->  " << std::scientific << std::setprecision(6) << s.sigmaHat() << std::endl;
-                    ret += s.sigmaHat();
+                if (int(pdgIds.size()) == nExternal) {
+                    for (auto & s : subprocesses) {
+                        //std::cout << "Trying process " << s.code() << " " << s.name() << std::endl;
+                        if (!s.matchParticles(pdgIds)) continue;
+                        s.setInitial(pdgIds[0], pdgIds[1]);
+                        s.setMomenta(momenta);
+                        s.sigmaKin(); // compute
+                        //std::cout << "process " << s.code() << " " << s.name() << " -->  " << std::scientific << std::setprecision(6) << s.sigmaHat() << std::endl;
+                        ret += s.sigmaHat();
+                    }
+                } else {
+                    //std::cout << "Process block " << subprocesses.front().code() << " skipped as it has nExternal = " << nExternal << " while input has " << pdgIds.size() << " particles." << std::endl;
                 }
                 return ret;
             }
