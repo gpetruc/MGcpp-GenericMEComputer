@@ -116,31 +116,70 @@ process.genParticles2HepMC.genParticles = 'genParticles'
 process.genParticles2HepMCHiggsVtx.genParticles = 'genParticles'
 process.particleLevelSequence.remove(process.mergedGenParticles)
 
+
+
+War_points_CPeven = [
+        ('HBox_up', dict(cHbox=+1)),
+        ('HBox_dn', dict(cHbox=-1)),
+        ('HW_up', dict(cHW=+0.1)),
+        ('HW_dn', dict(cHW=-0.1)),
+       #('HB_up', dict(cHB=+0.1)),
+       #('HB_dn', dict(cHB=-0.1)),
+       #('HWHB_up', dict(cHW=+0.1,cHB=+0.1)),
+       #('HWHB_dn', dict(cHW=-0.1,cHB=-0.1)),
+       #('NoZZ_up', dict(cHW=+0.469333471898234, cHB=-1.6326252710332367)),
+       #('NoZZ_dn', dict(cHW=-0.469333471898234, cHB=+1.6326252710332367)),
+]
+War_points = War_points_CPeven + [
+       ('HWtil_up', dict(cHWtil=+1)),
+       #('HWtil_dn', dict(cHWtil=-1)),
+       #('HWtil_half', dict(cHWtil=+0.5)),
+       #('HBtil_up', dict(cHBtil=+1)),
+       #('HBtil_dn', dict(cHBtil=-1)),
+       #('HBtil_half', dict(cHBtil=+0.5)),
+       #('HWBtil_up', dict(cHWBtil=+1)),
+       #('HWBtil_dn', dict(cHWBtil=-1)),
+       #('HWBtil_half', dict(cHWBtil=+0.5)),
+]
+
+
 import sys
 args = sys.argv[:]
 if args[0].startswith('cmsRun'): args = args[1:]
 sample = args[1] if len(args) > 1 else 'WpH_HToMuNu-SMEFTsim-B'
 mother = 0; undecayed = [ 25 ]
+scanPoints = cms.VPSet()
+from MGcpp.GenericMEComputer.utils import singleBlockPoints2PSet, genericPoints2PSet, warsawSMEFTsimPoints2SMEFTatNLO
+
 ## ==== WH ====
 if sample == "WpH_HToMuNu-SMEFTsim-B":  
     process.source.fileNames = [ 'file:/afs/cern.ch/work/g/gpetrucc/eft/EFT2Obs/EFT2Obs/MG5_aMC_v2_6_7/WpH_SMEFTsimB-no_b_mass/Events/run_01/unweighted_events.lhe' ]
     paramCard = "/afs/cern.ch/work/g/gpetrucc/eft/EFT2Obs/EFT2Obs/MG5_aMC_v2_6_7.bis/WpH_HToMuNu-SMEFTsim-B/Cards/param_card.dat"
     mgProcessCollection = "MGME_WpH_SMEFTsimB"
-    myWeights = [ 'rwHBox_up', 'rwHBox_dn', 'rwHW_up', 'rwHW_dn', 'rwHWtil_up', 'rwHWtil_dn', 'rwHWtil_half', ]
+    #myWeights = [ 'rwHBox_up', 'rwHBox_dn', 'rwHW_up', 'rwHW_dn', 'rwHWtil_up', 'rwHWtil_dn', 'rwHWtil_half', ]
+    myWeights = [ 'nhrwHW_up', 'nhrwHW_dn', 'nhrwHBox_up', 'nhrwHBox_dn', 'nhrwHWtil_up' ]
+    scanPoints = singleBlockPoints2PSet("newcoup", War_points)
+elif sample == "WpH_HToMuNu-SMEFTsim-B-with-SMEFTatNLO-01j":  
+    process.source.fileNames = [ 'file:/afs/cern.ch/work/g/gpetrucc/eft/EFT2Obs/EFT2Obs/MG5_aMC_v2_6_7/WpH_SMEFTsimB-no_b_mass/Events/run_01/unweighted_events.lhe' ]
+    paramCard = "/afs/cern.ch/work/g/gpetrucc/eft/EFT2Obs/EFT2Obs/MG5_aMC_v2_6_7/cpp_WpH-SMEFTatNLO-01j/Cards/param_card.dat"
+    mgProcessCollection = "MGME_WpH_SMEFTatNLO_01j"
+    #myWeights = [ 'rwHBox_up', 'rwHBox_dn', 'rwHW_up', 'rwHW_dn', 'rwHWtil_up', 'rwHWtil_dn', 'rwHWtil_half', ]
+    myWeights = [ 'nhrwHW_up', 'nhrwHW_dn', 'nhrwHBox_up', 'nhrwHBox_dn', ]  
+    scanPoints = genericPoints2PSet(warsawSMEFTsimPoints2SMEFTatNLO(War_points_CPeven))
 elif sample == "ggH_HTo4L-SMEFTsim-B":
     process.source.fileNames = [ 'file:/afs/cern.ch/work/g/gpetrucc/eft/EFT2Obs/EFT2Obs/MG5_aMC_v2_6_7/ggH_HTo4L-SMEFTsim-B/Events/run_02/unweighted_events.lhe' ]
     paramCard = "/afs/cern.ch/work/g/gpetrucc/eft/EFT2Obs/EFT2Obs/MG5_aMC_v2_6_7/ggH_HTo4L-SMEFTsim-B/Cards/param_card.dat"
     mgProcessCollection = "MGME_HTo4L_SMEFTsimB"
     mother = 25; undecayed = []
-    myWeights = [ 'rwHBox_up', 'rwHBox_dn', 'rwHW_up', 'rwHW_dn', 'rwHWtil_up', 'rwHWtil_dn', 'rwHWtil_half', ]
-
-
-myWeights += ["nh"+w for w in myWeights if (w.startswith("rw") and ("SM" not in w)) ]
+    #myWeights = [ 'rwHBox_up', 'rwHBox_dn', 'rwHW_up', 'rwHW_dn', 'rwHWtil_up', 'rwHWtil_dn', 'rwHWtil_half', ]
+    #myWeights += ["nh"+w for w in myWeights if (w.startswith("rw") and ("SM" not in w)) ]
+    myWeights = [ 'nhrwHW_up', 'nhrwHW_dn', 'nhrwHWtil_up' ]  
+    scanPoints = singleBlockPoints2PSet("newcoup", War_points)
+print scanPoints.dumpPython()
 
 process.NANOAODSIMoutput.fileName = 'step1-%s_NANO.root' % sample
 process.RAWSIMoutput.fileName = 'v2-step1-%s.root' % sample
 
-myWeights = [ 'nhrwHW_up', 'nhrwHW_dn', 'nhrwHWtil_up' ]  
 process.genWeightsTable.namedWeightIDs = myWeights
 process.genWeightsTable.namedWeightLabels = [ ("nh"+w[4:] if w.startswith("nhrw") else w[2:]) for w in myWeights ]
 #process.genWeightsTable.printNamedWeights = cms.untracked.bool(True)
@@ -162,36 +201,6 @@ process.pre_nanoAOD = cms.Sequence(
                                     process.lheInfoTable 
 )
 
-def _point(name,block,**kwargs):
-    return cms.PSet(
-                name = cms.string(name), 
-                params = cms.VPSet(
-                    cms.PSet(block = cms.string(block),
-                             name  = cms.string(key),
-                             value = cms.double(val)) for (key,val) in kwargs.iteritems()))
-
-points = [
-       # ('HBox_up', dict(cHbox=+1)),
-       # ('HBox_dn', dict(cHbox=-1)),
-        ('HW_up', dict(cHW=+0.1)),
-        ('HW_dn', dict(cHW=-0.1)),
-       #('HB_up', dict(cHB=+0.1)),
-       #('HB_dn', dict(cHB=-0.1)),
-       #('HWHB_up', dict(cHW=+0.1,cHB=+0.1)),
-       #('HWHB_dn', dict(cHW=-0.1,cHB=-0.1)),
-       #('NoZZ_up', dict(cHW=+0.469333471898234, cHB=-1.6326252710332367)),
-       #('NoZZ_dn', dict(cHW=-0.469333471898234, cHB=+1.6326252710332367)),
-       ('HWtil_up', dict(cHWtil=+1)),
-       #('HWtil_dn', dict(cHWtil=-1)),
-       #('HWtil_half', dict(cHWtil=+0.5)),
-       #('HBtil_up', dict(cHBtil=+1)),
-       #('HBtil_dn', dict(cHBtil=-1)),
-       #('HBtil_half', dict(cHBtil=+0.5)),
-       #('HWBtil_up', dict(cHWBtil=+1)),
-       #('HWBtil_dn', dict(cHWBtil=-1)),
-       #('HWBtil_half', dict(cHWBtil=+0.5)),
-]
-
 process.mgmeTable = cms.EDProducer("MGGenMatrixElementTableProducer",
    lheInfo = cms.VInputTag(cms.InputTag("externalLHEProducer"), cms.InputTag("source")),
    name = cms.string("MG"),
@@ -199,13 +208,7 @@ process.mgmeTable = cms.EDProducer("MGGenMatrixElementTableProducer",
    slha = cms.string(paramCard),
    motherParticle = cms.int32(mother),
    undecayedPdgIds = cms.vuint32(*undecayed),
-   scanPoints = cms.VPSet([
-       cms.PSet(name = cms.string(name),
-                params = cms.VPSet(
-                    cms.PSet(block = cms.string("newcoup"),
-                             name  = cms.string(key),
-                             value = cms.double(val)) for (key,val) in point.iteritems()))
-            for (name,point) in points])
+   scanPoints = scanPoints,
 )
 
 
