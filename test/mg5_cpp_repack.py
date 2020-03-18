@@ -86,8 +86,9 @@ def copy_param_class(srcdir,outdir,name,model,package):
             if stage != 0: raise RuntimeError("Bad stage %s" % stage)
             stage = 1
             line = "using %s::Parameters_%s;\n" % (ident, model)
-        elif stage == 1 and "::instance" in line:
-            stage = 2
+        elif stage == 1:
+            if "::instance" in line:
+                stage = 2
             continue
         elif "Function to get static instance" in line:
             if stage != 2: raise RuntimeError("Bad stage %s" % stage)
