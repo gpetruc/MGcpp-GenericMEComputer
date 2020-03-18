@@ -26,8 +26,13 @@ class SLHABlock
     SLHABlock(const std::string & name = ""){_name = name;}
     ~SLHABlock(){}
 
-    void set_entry(int index, double value) { 
+    void add_entry(int index, double value) { 
         _entries[index] = value; 
+    }
+    void set_entry(int index, double value) { 
+        auto match = _entries.find(index);
+        if (match == _entries.end()) throwMissing(index);
+        else match->second = value; 
     }
     double get_entry(int index, double def_val = 0) const {
         auto match = _entries.find(index);
@@ -37,6 +42,7 @@ class SLHABlock
         return _entries.find(index) != _entries.end();
     }
 
+    void add_entry(const std::vector<int> &indices, double value);
     void set_entry(const std::vector<int> &indices, double value);
     double get_entry(const std::vector<int> &indices, double def_val = 0) const {
         return get_entry(get_index(indices), def_val);
@@ -50,6 +56,7 @@ class SLHABlock
     }
 
 
+    void add_entry(const std::string & name, double value);
     void set_entry(const std::string & name, double value);
     double get_entry(const std::string & name, double def_val = 0) const {
         return get_entry(get_index(name), def_val);
@@ -74,6 +81,7 @@ class SLHABlock
     double operator[](int index) const { return get_entry(index); }
 
   private:
+    void throwMissing(int index) const ;
     int next_free_index() const ;
 
     std::string _name;
@@ -129,6 +137,15 @@ class SLHAInfo
     }
     void set_block_entry(const std::string & block_name, int index, double value) {
         return get_block(block_name).set_entry(index, value);
+    }
+    void add_block_entry(const std::string & block_name, const std::vector<int> & indices, double value) {
+        return get_block(block_name).add_entry(indices, value);
+    }
+    void add_block_entry(const std::string & block_name, const std::string & name, double value) {
+        return get_block(block_name).add_entry(name, value);
+    }
+    void add_block_entry(const std::string & block_name, int index, double value) {
+        return get_block(block_name).add_entry(index, value);
     }
     void add_block_entry(const std::string & block_name, const std::string & name, const std::vector<int> & indices, double value) {
         return get_block(block_name).add_entry(name, indices, value);

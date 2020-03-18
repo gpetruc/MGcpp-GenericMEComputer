@@ -6,6 +6,10 @@
 #include "FWCore/Utilities/interface/Exception.h"
 #include "FWCore/MessageLogger/interface/MessageLogger.h"
 
+void SLHABlock::throwMissing(int index) const {
+    throw cms::Exception("NotFound") << "Index " << index << " missing in block '" << _name << "'\n";
+}
+
 int SLHABlock::next_free_index() const {
     for (unsigned int i = _entries.size(), n = 2*i+2; i < n; ++i) {
         if (_entries.find(i) == _entries.end()) return i;
@@ -13,38 +17,74 @@ int SLHABlock::next_free_index() const {
     return -1;
 }
 
-void SLHABlock::set_entry(const std::vector<int> &indices, double value)
+void SLHABlock::add_entry(const std::vector<int> &indices, double value)
 {
-  if (_entries.empty() == 0)
+  if (_entries.empty()) {
     _nIndices = indices.size();
-  else if(indices.size() != _nIndices)
-    throw cms::Exception("Wrong number of indices in set_entry");
-    
+  } else if(indices.size() != _nIndices) {
+    throw cms::Exception("LogicError") << "Wrong number of indices (" <<indices.size() <<") in add_entry for block '" << _name << "'\n";
+  }
+
   int index = get_index(indices);
   if (index == -1) {
       index = next_free_index();
       _byMultiIndex[indices] = index;
+  } else {
+      throw cms::Exception("LogicError") << "Duplicate entry in add_entry for block '" << _name << "'\n";
   }
   _entries[index] = value;
 }
 
-void SLHABlock::set_entry(const std::string & name, double value)
+void SLHABlock::set_entry(const std::vector<int> &indices, double value)
+{
+  if (_entries.empty() || indices.size() != _nIndices)
+    throw cms::Exception("LogicError") << "Wrong number of indices (" <<indices.size() <<") in set_entry for block '" << _name << "'\n";
+    
+  int index = get_index(indices);
+  if (index == -1) {
+      throw cms::Exception("NotFound") << "Missing entry in set_entry for block '" << _name << "'\n";
+  }
+  _entries[index] = value;
+}
+
+
+void SLHABlock::add_entry(const std::string & name, double value)
 {
   int index = get_index(name);
   if (index == -1) {
       index = next_free_index();
       _byName[name] = index;
+  } else {
+      throw cms::Exception("LogicError") << "Duplicate entry in add_entry '" << name << "' for block '" << _name << "'\n";
+  }
+  _entries[index] = value;
+}
+
+
+void SLHABlock::set_entry(const std::string & name, double value)
+{
+  int index = get_index(name);
+  if (index == -1) {
+      throw cms::Exception("NotFound") << "Missing entry in set_entry '" << name << "' for block '" << _name << "'\n";
   }
   _entries[index] = value;
 }
 
 void SLHABlock::add_entry(const std::string & name, int index, double value) 
 {
-    _byName[name] = index;
-    _entries[index] = value;
+  if (get_index(name) != -1) {
+      throw cms::Exception("LogicError") << "Duplicate entry in add_entry '" << name << "' for block '" << _name << "'\n";
+  } 
+
+  _byName[name] = index;
+  _entries[index] = value;
 }
 void SLHABlock::add_entry(const std::string & name, const std::vector<int> &indices, double value) 
 {
+  if (get_index(name) != -1  || get_index(indices) != -1) {
+      throw cms::Exception("LogicError") << "Duplicate entry in add_entry '" << name << "' for block '" << _name << "'\n";
+  } 
+
   int index = next_free_index();
   _byMultiIndex[indices] = index;
   _entries[index] = value;
@@ -91,7 +131,7 @@ void SLHAInfo::read_slha_file(const std::string & file_name)
                       add_block_entry(block, name, index, value);
                       //std::cout << "Block " << block << ": created named entry '" << name << "' index " << index << " value " << value << std::endl;
                   } else {
-                      set_block_entry(block, index, value);
+                      add_block_entry(block, index, value);
                       //std::cout << "Block " << block << ": created unnamed entry index " << index << " value " << value << std::endl;
                   }
                   //barf = false;
@@ -105,7 +145,7 @@ void SLHAInfo::read_slha_file(const std::string & file_name)
                       add_block_entry(block, name, indices, value);
                       //std::cout << "Block " << block << ": created named entry '" << name << "' index2d ( " << indices[0] << " , " << indices[1] << " )  value " << value << std::endl;
                   } else {
-                      set_block_entry(block, indices, value);
+                      add_block_entry(block, indices, value);
                       //std::cout << "Block " << block << ": created unnamed index2d ( " << indices[0] << " , " << indices[1] << " )  value " << value << std::endl;
                   }
                   //barf = false;
@@ -122,7 +162,7 @@ void SLHAInfo::read_slha_file(const std::string & file_name)
           } else if (std::regex_match(line, match, decayline)) {
               int pdg_code = std::stoi(match[1].str());
               double value = std::stod(match[2].str());
-              set_block_entry("decay", pdg_code, value);
+              add_block_entry("decay", pdg_code, value);
               block = "";
               //std::cout << "Decay for " << pdg_code << " found" << std::endl;
               //barf = false;
